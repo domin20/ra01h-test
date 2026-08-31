@@ -1,15 +1,18 @@
 #pragma once
 
-#define NODE_COUNT 5
+#define NODE_COUNT 50
 #define NODE_COUNT_MAX 50
 
-// 0 = Regular ('A' boot, 'R' data)
-// 1 = NodeLite ('%' boot, '#' data)
-#define NODE_VARIANT 0
+#define BOOT_INTERVAL_MS 60000UL
+/* After Regular boot TX: wait up to this long for gateway ACK before next node. */
+#define BOOT_ACK_WAIT_REGULAR_MS 3000UL
+#define COMM_INTERVAL_MS 600000UL
+#define TX_GAP_MS 1000UL
+#define DATA_ACK_RETRY_MS 1000UL
+#define DATA_ACK_MAX_RETRIES 3U
 
-#define BOOT_INTERVAL_MS 60000UL  // retry bootup for the same node
-#define COMM_INTERVAL_MS 600000UL // data interval / first data delay
-#define TX_GAP_MS 1000UL          // min spacing between any two frames
+#define NODE_SLEEP_TIME_SEC 600U
+#define NODE_TIME_SLOT_SEC 10U
 
 #define MAC_OUI_0 0x00
 #define MAC_OUI_1 0x00
@@ -25,5 +28,6 @@
 #define LORA_MISO_PIN 19
 #define LORA_MOSI_PIN 23
 
-#define FW_VERSION 1234
-#define UNIX_TIME_BASE 1767225600UL // 2026-01-01 00:00:00 UTC
+#define FW_VERSION_REGULAR 100   // encoded as whole + fraction / 100 -> 1.00
+#define FW_VERSION_LITE 1000     // divided by 1000 on gateway -> 1.000
+#define UNIX_TIME_BASE 1767225600UL

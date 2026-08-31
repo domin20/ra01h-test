@@ -9,6 +9,7 @@ void setup()
   while (!Serial)
     ;
 
+  time_init();
   nodes_init();
 
   if (!radio_init())
