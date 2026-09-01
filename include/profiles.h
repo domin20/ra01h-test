@@ -30,10 +30,11 @@ enum NodeKind : uint8_t
 
 enum RegularProfile : uint8_t
 {
-  REG_PROFILE_VAISALA = 0, // MAC 01-05, m=1
-  REG_PROFILE_KTYPE = 1,   // MAC 06-10, m=2
-  REG_PROFILE_BLE = 2,     // MAC 11-15, m=3
-  REG_PROFILE_BLE_IO = 3,  // MAC 16-20, m=3 + door/water
+  REG_PROFILE_VAISALA = 0, // MAC 01-03, m=1
+  REG_PROFILE_LN2 = 1,     // MAC 04-05, LN2 level + temp
+  REG_PROFILE_KTYPE = 2,   // MAC 06-10, m=2
+  REG_PROFILE_BLE = 3,     // MAC 11-15, m=3
+  REG_PROFILE_BLE_IO = 4,  // MAC 16-20, m=3 + door/water
 };
 
 enum LiteProfile : uint8_t
@@ -54,6 +55,7 @@ const char *lite_profile_name(LiteProfile profile);
 void fill_regular_readings(const Node *node, int16_t *temperature, int16_t *humidity,
                            int16_t *thermocouple, int16_t *co2, uint8_t *sensor_type,
                            uint8_t *door, uint8_t *water, uint8_t *ble_battery,
-                           int8_t *ble_signal, int8_t *lora_signal);
+                           int8_t *ble_signal, int8_t *lora_signal, uint8_t *ln2_percent,
+                           int16_t *ln2_sensor);
 
 uint8_t fill_lite_sensors(const Node *node, uint8_t *dst, uint8_t max_bytes);

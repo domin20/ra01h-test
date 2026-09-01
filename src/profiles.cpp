@@ -39,8 +39,10 @@ void node_apply_profile(Node *node)
   if (node->id <= REGULAR_NODE_COUNT)
   {
     node->kind = NODE_KIND_REGULAR;
-    if (node->id <= 5)
+    if (node->id <= 3)
       node->profile = REG_PROFILE_VAISALA;
+    else if (node->id <= 5)
+      node->profile = REG_PROFILE_LN2;
     else if (node->id <= 10)
       node->profile = REG_PROFILE_KTYPE;
     else if (node->id <= 15)
@@ -105,6 +107,8 @@ const char *regular_profile_name(RegularProfile profile)
   {
   case REG_PROFILE_VAISALA:
     return "Vaisala";
+  case REG_PROFILE_LN2:
+    return "LN2";
   case REG_PROFILE_KTYPE:
     return "Ktype";
   case REG_PROFILE_BLE:
@@ -140,7 +144,8 @@ const char *lite_profile_name(LiteProfile profile)
 void fill_regular_readings(const Node *node, int16_t *temperature, int16_t *humidity,
                            int16_t *thermocouple, int16_t *co2, uint8_t *sensor_type,
                            uint8_t *door, uint8_t *water, uint8_t *ble_battery,
-                           int8_t *ble_signal, int8_t *lora_signal)
+                           int8_t *ble_signal, int8_t *lora_signal, uint8_t *ln2_percent,
+                           int16_t *ln2_sensor)
 {
   *temperature = SENTINEL_I16;
   *humidity = SENTINEL_I16;
@@ -151,6 +156,8 @@ void fill_regular_readings(const Node *node, int16_t *temperature, int16_t *humi
   *lora_signal = (int8_t)rand_i16(-80, -40);
   *door = 2;
   *water = 2;
+  *ln2_percent = 255;
+  *ln2_sensor = SENTINEL_I16;
 
   switch ((RegularProfile)node->profile)
   {
@@ -160,6 +167,12 @@ void fill_regular_readings(const Node *node, int16_t *temperature, int16_t *humi
     *humidity = float_to_i16(random(4000, 4501) / 100.0f);
     *co2 = float_to_i16(random(5, 16) / 100.0f);
     *ble_battery = 100;
+    break;
+
+  case REG_PROFILE_LN2:
+    *sensor_type = 4;
+    *ln2_percent = (uint8_t)random(35, 96);
+    *ln2_sensor = float_to_i16(random(-19600, -17800) / 100.0f);
     break;
 
   case REG_PROFILE_KTYPE:

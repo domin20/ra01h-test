@@ -1,4 +1,5 @@
 #include "emulator.h"
+#include "log.h"
 #include "node.h"
 #include "packets.h"
 #include "profiles.h"
@@ -23,38 +24,33 @@ static uint16_t read_le16(const uint8_t *p)
 
 static void log_tx(const char *kind, const Node *node, const lora_packet *pkt)
 {
-  Serial.print("TX ");
-  Serial.print(kind);
-  Serial.print("  node ");
-  Serial.print(node->id);
-  Serial.print("  ");
-  Serial.print(node_kind_name(node->kind));
-  Serial.print("/");
-  if (node->kind == NODE_KIND_REGULAR)
-    Serial.print(regular_profile_name((RegularProfile)node->profile));
-  else
-    Serial.print(lite_profile_name((LiteProfile)node->profile));
-  Serial.print("  MAC ");
-  print_mac(node->mac);
+  char mac[18];
+  const char *profile = node->kind == NODE_KIND_REGULAR
+                            ? regular_profile_name((RegularProfile)node->profile)
+                            : lite_profile_name((LiteProfile)node->profile);
+
+  format_mac(node->mac, mac, sizeof(mac));
+
   if (kind[0] == 'd')
   {
-    Serial.print("  counter ");
-    Serial.print(node->pkt_counter);
     if (node->pending_data_ack && node->data_retry_count > 0)
     {
-      Serial.print("  retry ");
-      Serial.print(node->data_retry_count);
-      Serial.print("/");
-      Serial.print(DATA_ACK_MAX_RETRIES);
+      log_msg_hex(pkt->data, pkt->size,
+                  "TX %s  node %u  %s/%s  MAC %s  counter %u  retry %u/%u", kind, node->id,
+                  node_kind_name(node->kind), profile, mac, node->pkt_counter,
+                  node->data_retry_count, DATA_ACK_MAX_RETRIES);
+    }
+    else
+    {
+      log_msg_hex(pkt->data, pkt->size, "TX %s  node %u  %s/%s  MAC %s  counter %u", kind,
+                  node->id, node_kind_name(node->kind), profile, mac, node->pkt_counter);
     }
   }
   else
   {
-    Serial.print("  attempt ");
-    Serial.print(node->boot_attempts);
+    log_msg_hex(pkt->data, pkt->size, "TX %s  node %u  %s/%s  MAC %s  attempt %u", kind,
+                node->id, node_kind_name(node->kind), profile, mac, node->boot_attempts);
   }
-  Serial.print("  ");
-  dump_hex(pkt->data, pkt->size);
 }
 
 static void log_schedule(const Node *node, const char *reason)
@@ -62,17 +58,8 @@ static void log_schedule(const Node *node, const char *reason)
   uint32_t now = millis();
   int32_t wait_ms = (int32_t)(node->next_comm_ms - now);
 
-  Serial.print("  ");
-  Serial.print(reason);
-  Serial.print(" -> node ");
-  Serial.print(node->id);
-  Serial.print(" dev#");
-  Serial.print(node->device_number);
-  Serial.print(" wakeup_unix=");
-  Serial.print(node->next_wakeup_unix);
-  Serial.print(" in ");
-  Serial.print(wait_ms > 0 ? (wait_ms / 1000) : 0);
-  Serial.println(" s");
+  LOG("%s -> node %u dev#%u wakeup_unix=%lu in %ld s", reason, node->id, node->device_number,
+      (unsigned long)node->next_wakeup_unix, (long)(wait_ms > 0 ? (wait_ms / 1000) : 0));
 }
 
 static bool parse_boot_ack(const lora_packet *rx, Node **node_out, uint32_t *act_time_out,
@@ -166,10 +153,7 @@ static void process_rx()
   if (!radio_poll_rx(&rx))
     return;
 
-  Serial.print("RX ");
-  Serial.print(rx.size);
-  Serial.print(" B  ");
-  dump_hex(rx.data, rx.size);
+  log_msg_hex(rx.data, rx.size, "RX %u B", rx.size);
 
   Node *node = nullptr;
   uint32_t act_time = 0;
@@ -206,7 +190,7 @@ static void process_rx()
     return;
   }
 
-  Serial.println("  RX ignored (unknown or unmatched ACK)");
+  LOG("RX ignored (unknown or unmatched ACK)");
 }
 
 static void service_tx()
@@ -273,47 +257,26 @@ static void service_tx()
 
 void emulator_start()
 {
-  Serial.println("LoRa multi-node emulator");
-  Serial.print("  nodes: ");
-  Serial.println(nodes_count());
-  Serial.print("  regular: ");
-  Serial.print(REGULAR_NODE_COUNT);
-  Serial.print("  lite: ");
-  Serial.println(LITE_NODE_COUNT);
-  Serial.print("  MAC: ");
-  print_mac(nodes_get(0)->mac);
-  Serial.print(" .. ");
-  print_mac(nodes_get(nodes_count() - 1)->mac);
-  Serial.println();
-  Serial.print("  boot retry: ");
-  Serial.print(BOOT_INTERVAL_MS / 1000);
-  Serial.println(" s / node");
-  Serial.print("  boot ack wait (Regular): ");
-  Serial.print(BOOT_ACK_WAIT_REGULAR_MS / 1000);
-  Serial.println(" s max (or sooner on ACK)");
-  Serial.print("  sleep/time-slot: ");
-  Serial.print(NODE_SLEEP_TIME_SEC);
-  Serial.print(" s / ");
-  Serial.print(NODE_TIME_SLOT_SEC);
-  Serial.println(" s");
-  Serial.print("  tx gap: ");
-  Serial.print(TX_GAP_MS / 1000);
-  Serial.println(" s");
-  Serial.print("  rtc: ");
+  char mac_first[18];
+  char mac_last[18];
+
+  format_mac(nodes_get(0)->mac, mac_first, sizeof(mac_first));
+  format_mac(nodes_get(nodes_count() - 1)->mac, mac_last, sizeof(mac_last));
+
+  LOG("LoRa multi-node emulator");
+  LOG("nodes: %u", nodes_count());
+  LOG("regular: %u  lite: %u", REGULAR_NODE_COUNT, LITE_NODE_COUNT);
+  LOG("MAC: %s .. %s", mac_first, mac_last);
+  LOG("boot retry: %lu s / node", BOOT_INTERVAL_MS / 1000UL);
+  LOG("boot ack wait (Regular): %lu s max (or sooner on ACK)", BOOT_ACK_WAIT_REGULAR_MS / 1000UL);
+  LOG("sleep/time-slot: %u s / %u s", NODE_SLEEP_TIME_SEC, NODE_TIME_SLOT_SEC);
+  LOG("tx gap: %lu s", TX_GAP_MS / 1000UL);
   if (time_is_synced())
-  {
-    Serial.print("synced, unix=");
-    Serial.println(current_unix_time());
-  }
+    LOG("rtc: synced, unix=%lu", (unsigned long)current_unix_time());
   else
-  {
-    Serial.println("waiting for first gateway frame");
-  }
-  Serial.print("  data ack retry: ");
-  Serial.print(DATA_ACK_RETRY_MS / 1000);
-  Serial.print(" s, max ");
-  Serial.println(DATA_ACK_MAX_RETRIES);
-  Serial.println("  next comm: (ActTime/Sleep+1)*Sleep + Dev#*Slot");
+    LOG("rtc: waiting for first gateway frame");
+  LOG("data ack retry: %lu s, max %u", DATA_ACK_RETRY_MS / 1000UL, DATA_ACK_MAX_RETRIES);
+  LOG("next comm: (ActTime/Sleep+1)*Sleep + Dev#*Slot");
 }
 
 void emulator_tick()

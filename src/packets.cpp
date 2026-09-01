@@ -76,9 +76,12 @@ static void prepare_regular_data(const Node *node, lora_packet *pkt)
   uint8_t ble_battery;
   int8_t ble_signal;
   int8_t lora_signal;
+  uint8_t ln2_percent;
+  int16_t ln2_sensor;
 
   fill_regular_readings(node, &temperature, &humidity, &thermocouple, &co2, &sensor_type,
-                        &door, &water, &ble_battery, &ble_signal, &lora_signal);
+                        &door, &water, &ble_battery, &ble_signal, &lora_signal, &ln2_percent,
+                        &ln2_sensor);
 
   time_t t = (time_t)current_unix_time();
   struct tm tm_buf;
@@ -99,8 +102,8 @@ static void prepare_regular_data(const Node *node, lora_packet *pkt)
   pkt->data[19] = (uint8_t)ble_signal;
   pkt->data[20] = (uint8_t)lora_signal;
   pkt->data[21] = 0;
-  pkt->data[22] = 0;
-  write_i16_be(&pkt->data[23], SENTINEL_I16);
+  pkt->data[22] = ln2_percent;
+  write_i16_be(&pkt->data[23], ln2_sensor);
   pkt->data[25] = 0;
   pkt->data[26] = 1;
   pkt->data[27] = (uint8_t)(counter & 0xFF);

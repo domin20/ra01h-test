@@ -65,5 +65,5 @@ uint32_t node_calc_wakeup_unix(uint32_t act_time, uint16_t sleep_sec, uint8_t sl
                                uint8_t device_number);
 
 void print_mac(const uint8_t *mac);
-void dump_hex(const uint8_t *data, uint8_t len);
+void format_mac(const uint8_t *mac, char *out, size_t out_len);
 uint32_t current_unix_time();

@@ -1,5 +1,7 @@
 #include "node.h"
+#include "log.h"
 #include "profiles.h"
+#include <stdio.h>
 #include <string.h>
 #include <sys/time.h>
 #include <time.h>
@@ -33,8 +35,7 @@ void time_sync_from_gateway_once(uint32_t gateway_unix)
   settimeofday(&tv, nullptr);
   g_rtc_synced = true;
 
-  Serial.print("RTC set from gateway unix=");
-  Serial.println(gateway_unix);
+  LOG("RTC set from gateway unix=%lu", (unsigned long)gateway_unix);
 }
 
 bool time_is_synced()
@@ -233,11 +234,8 @@ void node_on_data_retries_exhausted(Node *node)
 {
   if (node == nullptr)
     return;
-  Serial.print("  DATA ACK timeout node ");
-  Serial.print(node->id);
-  Serial.print(" after ");
-  Serial.print(DATA_ACK_MAX_RETRIES);
-  Serial.println(" retries, scheduling fallback");
+  LOG("DATA ACK timeout node %u after %u retries, scheduling fallback", node->id,
+      DATA_ACK_MAX_RETRIES);
   node->pending_data_ack = false;
   node->data_retry_count = 0;
   schedule_wakeup(node, current_unix_time(), node->sleep_time_sec, node->time_slot_sec,
@@ -251,28 +249,18 @@ uint32_t node_calc_wakeup_unix(uint32_t act_time, uint16_t sleep_sec, uint8_t sl
   return (bucket + 1U) * sleep_sec + (uint32_t)device_number * (uint32_t)slot_sec;
 }
 
-void print_mac(const uint8_t *mac)
+void format_mac(const uint8_t *mac, char *out, size_t out_len)
 {
-  for (uint8_t i = 0; i < 6; i++)
-  {
-    if (mac[i] < 16)
-      Serial.print('0');
-    Serial.print(mac[i], HEX);
-    if (i < 5)
-      Serial.print(':');
-  }
+  snprintf(out, out_len, "%02X:%02X:%02X:%02X:%02X:%02X", mac[0], mac[1], mac[2], mac[3],
+           mac[4], mac[5]);
 }
 
-void dump_hex(const uint8_t *data, uint8_t len)
+void print_mac(const uint8_t *mac)
 {
-  for (uint8_t i = 0; i < len; i++)
-  {
-    if (data[i] < 16)
-      Serial.print('0');
-    Serial.print(data[i], HEX);
-    Serial.print(' ');
-  }
-  Serial.println();
+  char buf[18];
+
+  format_mac(mac, buf, sizeof(buf));
+  Serial.print(buf);
 }
 
 uint32_t current_unix_time()

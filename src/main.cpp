@@ -1,7 +1,8 @@
 #include <Arduino.h>
-#include "node.h"
-#include "lora_radio.h"
 #include "emulator.h"
+#include "log.h"
+#include "lora_radio.h"
+#include "node.h"
 
 void setup()
 {
@@ -14,7 +15,7 @@ void setup()
 
   if (!radio_init())
   {
-    Serial.println("LoRa init failed. Check your connections.");
+    LOG("LoRa init failed. Check your connections.");
     while (true)
       ;
   }
