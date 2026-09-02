@@ -16,16 +16,15 @@ static void encode_sensor(uint8_t *dst, float value, uint8_t unit, uint8_t type)
 {
   int16_t mantissa;
   int8_t exponent = -2;
+  float scaled = value * 100.0f;
 
-  if (fabsf(value) >= 10000.0f)
-  {
-    exponent = 1;
-    mantissa = (int16_t)lroundf(value / 10.0f);
+  /* mantissa is int16 — values above ~327.67 with exp -2 overflow and decode negative */
+  while (fabsf(scaled) > 32767.0f && exponent < 10) {
+    exponent++;
+    scaled = value * powf(10.0f, (float)(-exponent));
   }
-  else
-  {
-    mantissa = (int16_t)lroundf(value * 100.0f);
-  }
+
+  mantissa = (int16_t)lroundf(scaled);
 
   dst[0] = (uint8_t)(mantissa & 0xFF);
   dst[1] = (uint8_t)((mantissa >> 8) & 0xFF);
